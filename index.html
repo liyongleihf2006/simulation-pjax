@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .container{
+            overflow: hidden;
+            padding:0 100px;
+        }
+        .left{
+            float: left;
+            background-color: aqua;
+        }
+        .right{
+            display: table-cell;
+            width: 200000px;
+            background-color: bisque;
+        }
+        .left,.content{
+            min-height: 900px;
+            margin-bottom: -100000px;
+            padding-bottom:100000px;
+        }
+        .navigation{
+            padding: 0;
+        }
+        .navigation li{
+            cursor: pointer;
+            padding:10px;
+            list-style: none;
+        }
+        .active{
+            background-color: antiquewhite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left">
+            <ul class="navigation" >
+                <li data-url="first">第一页</li>
+                <li data-url="second">第二页</li>
+                <li data-url="third">第三页</li>
+                <li data-url="forth">第四页</li>
+                <li data-url="fifth">第五页</li>
+            </ul>
+        </div>
+        <div class="right">
+            <div id="content" class="content">
+
+            </div>
+        </div>
+    </div>
+    <script>
+        var httpRequest;
+        Array.prototype.forEach.call(document.querySelectorAll(".navigation li"),function(nav){
+            nav.addEventListener("click",function(){
+                var url =this.dataset?this.dataset.url:this.getAttribute("data-url");
+                doNavigation(url,this);
+                var query = location.href.split("?")[1];
+                if(window.history.pushState){
+                    if(!query){
+                        window.history.replaceState({url:url},"标题(未实现)",location.href.split("?")[0]+"?"+url);
+                    }else if(query!=url){
+                        window.history.pushState({url:url},"标题(未实现)",location.href.split("?")[0]+"?"+url);
+                    }
+                }
+            });
+        });
+        if (window.history.pushState) {
+            window.addEventListener("popstate", function(popStateEvent) {
+                var query = location.href.split("?")[1];
+                if(!query){
+                    document.querySelector(".navigation li").click();
+                    return;
+                }
+                doNavigation(query);
+            });
+        }
+        if(typeof location.href.split("?")[1] == "undefined"){
+            document.querySelector(".navigation li").click();
+        }else{
+            doNavigation(location.href.split("?")[1]);
+        }
+        function doNavigation(url,navBtn){
+            Array.prototype.forEach.call(document.querySelectorAll(".navigation li"),function(nav){
+                nav.classList?nav.classList.remove("active"):nav.className=nav.className.replace(" active ","");
+            });
+            if(!navBtn){
+                document.querySelector(".navigation li[data-url="+url+"]").classList?document.querySelector(".navigation li[data-url="+url+"]").classList.add("active"):
+                        document.querySelector(".navigation li[data-url="+url+"]").className=document.querySelector(".navigation li[data-url="+url+"]").className+" active";
+            }else{
+                navBtn.classList?navBtn.classList.add("active"):navBtn.className=navBtn.className+" active";
+            }
+            document.querySelector("#content").innerHTML="加载中...";
+            document.title=url;
+            setTimeout(function(){
+                if(httpRequest){
+                    httpRequest.abort();
+                }
+                httpRequest=new XMLHttpRequest();
+                httpRequest.onreadystatechange = function(){
+                    if (httpRequest.readyState === XMLHttpRequest.DONE) {
+                        if (httpRequest.status === 200) {
+                            document.querySelector("#content").innerHTML=httpRequest.responseText;
+                        }
+                    }
+                };
+                httpRequest.open("GET","page/"+url+".html",true);
+                httpRequest.send(null);
+            },1000);
+        }
+    </script>
+</body>
+</html>
